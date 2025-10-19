@@ -31,5 +31,5 @@ This project is under a restrictive license. You may view the code for education
 
 ## Support me!
 Totally optional. Yaha-Pet will always be free, for Chiikawa fans, and made by a Chiikawa fan. 
-Still, you can support it's development buying me a Ko-Fi! You should do it only if you can and want to.
+Still, you can support its development buying me a Ko-Fi! You should do it only if you can and want to.
 https://ko-fi.com/gitchara
