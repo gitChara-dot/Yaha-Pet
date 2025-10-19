@@ -18,7 +18,8 @@ This application is intended for Windows users.
 1.  Go to the Releases (https://github.com/gitChara-dot/Yaha-Pet/releases) page of this repository.
 2.  Download the latest `.zip` file (e.g., `Yaha-Pet-v1.0.zip`).
 3.  Unzip the downloaded file.
-4.  Run the `.exe` file inside the folder. That's it!
+4.  Run the `.exe` file inside the folder.
+5.  Open Window System Tray (The small arrow pointing up on your taskbar), right-click Usagi's Icon. That's it!
 
 ## ⚠️ Disclaimer
 
