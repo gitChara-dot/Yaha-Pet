@@ -1,0 +1,13 @@
+
+/venv/
+
+
+/workmaterial/
+/releases/
+
+
+/dist/
+/build/
+
+__pycache__/
+*.spec
