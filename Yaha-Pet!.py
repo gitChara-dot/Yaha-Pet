@@ -1,12 +1,21 @@
-
+import os
+import sys
 from PyQt6.QtWidgets import QApplication, QWidget, QSystemTrayIcon, QMenu, QLabel
 from PyQt6.QtCore import Qt, QSize, QPoint, QUrl, QPropertyAnimation, QTimer
 from PyQt6.QtGui import QIcon, QGuiApplication, QPixmap, QAction
 from PyQt6.QtMultimedia import QSoundEffect
 from pathlib import Path
 import random 
-from time import perf_counter
 
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
 
 #Functions
 def close_app():
@@ -36,10 +45,11 @@ def say_hi_message():
     if(len(characters_names)>0):
         name = random.choice(characters_names)
         #Setting the sound
-        sound.setSource(QUrl.fromLocalFile(f'assets/{name}/sounds/una.wav'))
+        sound_path = resource_path(f'assets/{name}/sounds/hi.wav')
+        sound.setSource(QUrl.fromLocalFile(sound_path))
         sound.setVolume(0.5)
         
-        yaha_tray.showMessage(f'{name} says:','Una!', yaha_icon, 500)
+        yaha_tray.showMessage(f'{name} says:','Hi!', yaha_icon, 500)
         sound.setLoopCount(1)
         sound.play()
     else:
@@ -65,7 +75,7 @@ class Character(QWidget):
 
         #Sound Effects
         self.grabbed_soundeffects = [] # List of all sound effects available when the character gets grabbed with mouse
-        sound_effect_path = Path(f'assets/{self.name}/sounds')
+        sound_effect_path = Path(resource_path(f'assets/{self.name}/sounds'))
         for file in sound_effect_path.iterdir():
             file_name = file.name
             if(file_name[0:7] == "grabbed" and file_name[-4:] == ".wav"):
@@ -148,7 +158,9 @@ class Character(QWidget):
     def play_animsound(self, animname:str ):
         self.soundplayer.setMuted(False)
         self.soundplayer.setLoopCount(1)
-        soundpath = f'assets/{self.name}/sounds/{animname}.wav'
+        
+
+        soundpath = resource_path(f'assets/{self.name}/sounds/{animname}.wav')
         print(f"sound: {soundpath}")
         if(Path.exists(Path(soundpath))):
             self.soundplayer.setSource(QUrl.fromLocalFile(soundpath))
@@ -247,8 +259,8 @@ class Character(QWidget):
 
 
     def preload_animations(self, animname):
-        
-        base = Path(f'assets/{self.name}/animations/{animname}')
+        base_path = resource_path(f'assets/{self.name}/animations/{animname}')
+        base = Path(base_path)
         files = sorted(base.glob("*.png"), key=lambda f: int(f.stem)) # Sort files by number
         target: QSize = self.char_size # Set target size for images 
         width = target.width()
@@ -307,7 +319,8 @@ class Character(QWidget):
                     sound_effect.setVolume(1)
                     sound_chosen = random.choice(self.grabbed_soundeffects) # Choose a random "grabbed" sfx
                     print(sound_chosen)
-                    sound_effect.setSource(QUrl.fromLocalFile(f'assets/{self.name}/sounds/{sound_chosen}.wav'))
+                    sound_source = resource_path(f'assets/{self.name}/sounds/{sound_chosen}.wav')
+                    sound_effect.setSource(QUrl.fromLocalFile(sound_source))
                     sound_effect.play()
                     sound_effect.playingChanged.connect(lambda: sound_effect.deleteLater()) # Destroy itself to avoid being picked up by garbage col.
                     
@@ -321,7 +334,7 @@ class Character(QWidget):
                 self.move(new_top_left)
 
                 #Set special image when grabbing
-                grabbed_image_dir = f'assets/{self.name}/sprites/grabbed.png'
+                grabbed_image_dir = resource_path(f'assets/{self.name}/sprites/grabbed.png')
                 self.setLabelImage(grabbed_image_dir)
 
                 
@@ -360,7 +373,7 @@ class Character(QWidget):
         self.label.repaint()
 
     def setDefaultLabel(self):
-        pix = QPixmap(f'assets/{self.name}/sprites/spawn.png')
+        pix = QPixmap(resource_path(f'assets/{self.name}/sprites/spawn.png'))
         scaled = pix.scaled(self.char_size, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation )
         self.label.setPixmap(scaled)
         self.resize(scaled.size())
@@ -386,7 +399,7 @@ class Character(QWidget):
         time = int(1.5*time) # Convert to int to avoid bugs
 
         #Set the falling sprite
-        self.set_sprite(f'assets/{self.name}/animations/falling/falling.ico')
+        self.set_sprite(resource_path(f'assets/{self.name}/animations/falling/falling.ico'))
 
         
         #Animation 
@@ -401,7 +414,7 @@ class Character(QWidget):
         self.timer = QTimer()
         self.timer.setSingleShot(True) #Only once
         self.timer.start(time) # Same time as animation length
-        self.timer.timeout.connect(lambda: self.set_sprite(f'assets/{self.name}/sprites/spawn.png')) # When it ends, go back to normal sprite
+        self.timer.timeout.connect(lambda: self.set_sprite(resource_path(f'assets/{self.name}/sprites/spawn.png'))) # When it ends, go back to normal sprite
         self.timer.timeout.connect(self.setOnAnimation)
         
 def create_character(name: str):
@@ -428,7 +441,7 @@ def create_character(name: str):
         #Preload all animations
         yaha_tray.showMessage(f'Loading {name}', 'This may take a while the first time', QSystemTrayIcon.MessageIcon.Information, 500)
         character.preload_allanimations()
-        character.set_sprite(f'assets/{name}/sprites/spawn.png')
+        character.set_sprite(resource_path(f'assets/{name}/sprites/spawn.png'))
 
         #Play the spawn animation sound for the corresponding character
         character.play_animsound("spawn")
@@ -438,11 +451,11 @@ def create_character(name: str):
         yaha_tray.showMessage('Fail', 'Character already spawned!', QSystemTrayIcon.MessageIcon.Information, 500)
 
 
-
+#Setting up variables
 
 app = QApplication([])
 
-#Setting the window and it's flags
+#Setting the window and flags
 yahawindow = QWidget()
 yahawindow.setWindowFlag(Qt.WindowType.FramelessWindowHint) #  No title bar
 yahawindow.setWindowFlag(Qt.WindowType.WindowStaysOnTopHint) # Always on top
@@ -456,7 +469,8 @@ resize_to_current_screen()
 yahawindow.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True) # Transparency: True
 
 #Tray and icon
-yaha_icon = QIcon('assets/usagi/icons/usagi.ico')
+icon_path = resource_path('assets/usagi/icons/usagi.ico')
+yaha_icon = QIcon(icon_path)
 yaha_tray = QSystemTrayIcon(yaha_icon,parent=app)
 yaha_tray.show()
 tray_menu = QMenu()
@@ -567,7 +581,7 @@ def setup_all_menus():
         
         for character in allcharacters:
             character_animations = []
-            dir = Path(f'assets/{character}/animations')
+            dir = Path(resource_path(f'assets/{character}/animations'))
             if(Path.exists(dir)):
                 for folder_name in dir.iterdir():
                     print(folder_name)
@@ -603,6 +617,9 @@ def start_anim_frommenu(action: QAction):
 #Start event loop
 setup_all_menus()
 
+
+#Let the user know that the app has been initialized
+yaha_tray.showMessage('Una!','App started, check your Windows Tray and right click it to start!', yaha_icon, 500)
 app.exec()
 
 
