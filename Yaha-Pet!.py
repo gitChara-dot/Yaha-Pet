@@ -575,6 +575,7 @@ def kick_character(action: QAction):
         play_animation_menu.setDisabled(True)
         muteall_button.setDisabled(True)
 def setup_all_menus():
+    yaha_tray.showMessage('Una!','App started, check your Windows Tray and right click it to start!', yaha_icon, 500)
     global muteall_flag
     muteall_flag = False
     if(not totalanimations):
@@ -619,7 +620,7 @@ setup_all_menus()
 
 
 #Let the user know that the app has been initialized
-yaha_tray.showMessage('Una!','App started, check your Windows Tray and right click it to start!', yaha_icon, 500)
+
 app.exec()
 
 
