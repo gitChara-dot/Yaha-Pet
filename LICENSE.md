@@ -1,29 +1,19 @@
-# Yaha-Pet!
+Copyright (c) 2025 gitChara-dot
 
-A simple desktop pet application featuring characters from the "Chiikawa" universe, created with Python and PyQt6. The characters will roam your desktop, play animations, and react to your interactions.
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-## ✨ Features
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
 
-* Autonomous Behavior: Characters walk around the screen on their own.
-* Interactive: Drag and drop the characters anywhere on your screen.
-* Lively Animations: Features several sprite animations for different actions like walking and dancing.
-* Sound Effects: Characters have unique sounds for animations and interactions.
-* System Tray Control: Manage your spawned characters through a system tray icon menu.
-* Customizable: Don't like a certain animation? Sound is too loud? Change it all on the tray control.
-
-## 🚀 How to Run
-
-This application is intended for Windows users.
-
-1.  Go to the Releases (https://github.com/gitChara-dot/Yaha-Pet/releases) page of this repository.
-2.  Download the latest `.zip` file (e.g., `Yaha-Pet-v1.0.zip`).
-3.  Unzip the downloaded file.
-4.  Run the `.exe` file inside the folder. That's it!
-
-## ⚠️ Disclaimer
-
-This is a non-profit fan project created for entertainment and educational purposes. All characters and associated assets from "Chiikawa" are the intellectual property of their original creator, Nagano. Please support the official work.
-
-## 📄 License
-
-This project is under a restrictive license. You may view the code for educational purposes, but you are not permitted to copy, modify, distribute, or use it in your own projects. See the `LICENSE.md` file for more details.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

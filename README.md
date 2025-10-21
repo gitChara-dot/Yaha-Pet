@@ -26,4 +26,9 @@ This is a non-profit fan project created for entertainment and educational purpo
 
 ## 📄 License
 
-This project is under a restrictive license. You may view the code for educational purposes, but you are not permitted to copy, modify, distribute, or use it in your own projects. See the `LICENSE.md` file for more details.
+This project is licensed under the MIT License. See the `LICENSE.md` file for details.
+
+## Support me!
+Totally optional. Yaha-Pet will always be free, for Chiikawa fans, and made by a Chiikawa fan. 
+Still, you can support its development buying me a Ko-Fi! You should do it only if you can and want to.
+https://ko-fi.com/gitchara

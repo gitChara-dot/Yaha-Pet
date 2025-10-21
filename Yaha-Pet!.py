@@ -46,10 +46,11 @@ def say_hi_message():
         name = random.choice(characters_names)
         #Setting the sound
         sound_path = resource_path(f'assets/{name}/sounds/hi.wav')
+        icon_path = QIcon(resource_path(f'assets/{name}/icons/icon.png'))
         sound.setSource(QUrl.fromLocalFile(sound_path))
         sound.setVolume(0.5)
         
-        yaha_tray.showMessage(f'{name} says:','Hi!', yaha_icon, 500)
+        yaha_tray.showMessage(f'{name} says:','Hi!', icon_path, 500)
         sound.setLoopCount(1)
         sound.play()
     else:
@@ -63,7 +64,7 @@ class Character(QWidget):
         self.drag = False
         self.char_size = size
         self.first = True # Its the first time it spawns, useful when calling the function set_sprite.
-
+        self.associated_button : QAction = None
         #self.start_time : float
         #self.end_time : float # - BENCHMARKING PURPOSES
 
@@ -180,7 +181,7 @@ class Character(QWidget):
                 if(self.roll_direction == 0):
                     start_range = 0
                     end_range = self.pos().x() - min_walk_distance
-                   
+                
                 else:
                     start_range = self.pos().x() + min_walk_distance
                     end_range = screen_width-self.width()
@@ -253,10 +254,20 @@ class Character(QWidget):
             if(self.current_anim_name != "walkleft" and self.current_anim_name != "walkright"):  # Avoid changing the position for the walk ainmation
                 self.move(self.before_anim_pos) # Changes the position in order to adjust for different image sizes
     def stop_current_animation(self):
+        self.animation.stop()
         self.frame_timer.stop()  # Stop the timer
         self.setDefaultLabel() # Set default animation
         self.onanimation = False # Animation ended
 
+    def blockAnimations(self):
+        if(self.randomtimer.isActive()):
+            print("stopped")
+            self.randomtimer.stop()
+            self.stop_current_animation()
+            self.associated_button.setText(f'{self.name} (click to enable)')
+        else:
+            self.randomtimer.start()
+            self.associated_button.setText(f'{self.name} (click to disable)')
 
     def preload_animations(self, animname):
         base_path = resource_path(f'assets/{self.name}/animations/{animname}')
@@ -336,9 +347,7 @@ class Character(QWidget):
                 #Set special image when grabbing
                 grabbed_image_dir = resource_path(f'assets/{self.name}/sprites/grabbed.png')
                 self.setLabelImage(grabbed_image_dir)
-
-                
-                
+              
 
     def mouseReleaseEvent(self, e):
         if(e.button() == Qt.MouseButton.LeftButton and not self.onanimation):
@@ -378,13 +387,15 @@ class Character(QWidget):
         self.label.setPixmap(scaled)
         self.resize(scaled.size())
         self.label.resize(scaled.size())
-
+    def setAssociatedButton(self, b: QAction):
+        self.associated_button = b
     def getTimer(self):
         return self.frame_timer
     def mute(self, flag: bool):
         self.mutesounds = flag
     def setOnAnimation(self):
         self.onanimation = not self.onanimation
+    
     def fall_animation(self):
         self.onanimation = True # Warns click events that this widget is on an animation and it cant be clicked.
 
@@ -434,8 +445,7 @@ def create_character(name: str):
                 play_animation_chiikawa_menu.setDisabled(False)
             case 'hachiware':
                 play_animation_hachiware_menu.setDisabled(False)
-        kick_menu.addAction(name)
-        muteall_button.setDisabled(False)
+        
         #Instance the character
         character = Character(name, get_size_for_characters()) 
         #Preload all animations
@@ -446,7 +456,16 @@ def create_character(name: str):
         #Play the spawn animation sound for the corresponding character
         character.play_animsound("spawn")
         #Add character to alive widgets list
+
         characters.append(character)
+        #Set up related menus 
+        animationbutton = QAction(name) # Create a stop animation button for this hcaracter
+        stop_animation_menu.addAction(animationbutton) # Add the action to the corresponding menu
+        animationbutton.triggered.connect(lambda: character.blockAnimations()) # Set up button to block random animations
+        character.setAssociatedButton(animationbutton) # Set the button to the character
+        
+        kick_menu.addAction(name) #enable kicking the character
+        muteall_button.setDisabled(False) # Enable the muteall button
     else:
         yaha_tray.showMessage('Fail', 'Character already spawned!', QSystemTrayIcon.MessageIcon.Information, 500)
 
@@ -521,6 +540,11 @@ muteall_button.setDisabled(True)
 tray_menu.addAction(muteall_button)
 muteall_button.triggered.connect(lambda: mute_character('all'))
 
+#Stop animation menu
+stop_animation_menu = QMenu("Stop Animation of...")
+mute_options : list[QAction] = []
+tray_menu.addMenu(stop_animation_menu)
+
 
 
 
@@ -575,7 +599,7 @@ def kick_character(action: QAction):
         play_animation_menu.setDisabled(True)
         muteall_button.setDisabled(True)
 def setup_all_menus():
-    yaha_tray.showMessage('Una!','App started, check your Windows Tray and right click it to start!', yaha_icon, 500)
+    yaha_tray.showMessage('Una!','App started, check your Windows System Tray and right click it to start!', yaha_icon, 500)
     global muteall_flag
     muteall_flag = False
     if(not totalanimations):
