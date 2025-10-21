@@ -20,6 +20,11 @@ This application is intended for Windows users.
 3.  Unzip the downloaded file.
 4.  Run the `.exe` file inside the folder.
 5.  Open Window System Tray (The small arrow pointing up on your taskbar), right-click Usagi's Icon. That's it!
+6.  (OPTIONAL, IMPORTANT FOR WIN11 USERS): If you have Windows 11 and don't have the System Tray on your taskbar, do these steps:
+    a. Right click the Taskbar
+    b. Open taskbar configuration
+    c. Go to "Taskbar Overflow" or "Other Taskbar Icons"
+    d. Enable Yaha-Pet.
 
 ## ⚠️ Disclaimer
 
