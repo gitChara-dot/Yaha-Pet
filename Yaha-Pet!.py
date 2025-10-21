@@ -159,8 +159,6 @@ class Character(QWidget):
     def play_animsound(self, animname:str ):
         self.soundplayer.setMuted(False)
         self.soundplayer.setLoopCount(1)
-        
-
         soundpath = resource_path(f'assets/{self.name}/sounds/{animname}.wav')
         print(f"sound: {soundpath}")
         if(Path.exists(Path(soundpath))):
@@ -254,6 +252,7 @@ class Character(QWidget):
             if(self.current_anim_name != "walkleft" and self.current_anim_name != "walkright"):  # Avoid changing the position for the walk ainmation
                 self.move(self.before_anim_pos) # Changes the position in order to adjust for different image sizes
     def stop_current_animation(self):
+        self.stop_current_sound()
         self.animation.stop()
         self.frame_timer.stop()  # Stop the timer
         self.setDefaultLabel() # Set default animation
@@ -434,9 +433,9 @@ def create_character(name: str):
     if(name not in characters_names):
          
         characters_names.append(name) # Add to character list
-        #print(name)
         play_animation_menu.setDisabled(False) # Activate the animation menu
         kick_menu.setDisabled(False) # Enable kicking the character
+        
         match name:
             case 'usagi':
                 play_animation_usagi_menu.setDisabled(False)
@@ -448,17 +447,18 @@ def create_character(name: str):
         
         #Instance the character
         character = Character(name, get_size_for_characters()) 
-        #Preload all animations
+
+        ###Preload all animations
         yaha_tray.showMessage(f'Loading {name}', 'This may take a while the first time', QSystemTrayIcon.MessageIcon.Information, 500)
         character.preload_allanimations()
         character.set_sprite(resource_path(f'assets/{name}/sprites/spawn.png'))
 
-        #Play the spawn animation sound for the corresponding character
-        character.play_animsound("spawn")
-        #Add character to alive widgets list
+        
+        character.play_animsound("spawn") #Play the spawn animation sound for the corresponding character
 
-        characters.append(character)
-        #Set up related menus 
+        characters.append(character) #Add character to alive widgets list
+
+        ###Set up related menus 
         animationbutton = QAction(name) # Create a stop animation button for this hcaracter
         stop_animation_menu.addAction(animationbutton) # Add the action to the corresponding menu
         animationbutton.triggered.connect(lambda: character.blockAnimations()) # Set up button to block random animations
@@ -466,6 +466,7 @@ def create_character(name: str):
         
         kick_menu.addAction(name) #enable kicking the character
         muteall_button.setDisabled(False) # Enable the muteall button
+        stop_animation_menu.setDisabled(False) # Enable the stop animations menu
     else:
         yaha_tray.showMessage('Fail', 'Character already spawned!', QSystemTrayIcon.MessageIcon.Information, 500)
 
@@ -542,6 +543,7 @@ muteall_button.triggered.connect(lambda: mute_character('all'))
 
 #Stop animation menu
 stop_animation_menu = QMenu("Stop Animation of...")
+stop_animation_menu.setDisabled(True)
 mute_options : list[QAction] = []
 tray_menu.addMenu(stop_animation_menu)
 
@@ -594,10 +596,11 @@ def kick_character(action: QAction):
                 break
         index+=1
     kick_menu.removeAction(action)
-    if(not kick_menu.actions()): #iF THERE ARENT ANY ACTIONS, THERE ARENT ANY CHARACTERS ALIVE
+    if(not kick_menu.actions()): #iF THERE ARENT ANY ACTIONS, THERE ARENT ANY CHARACTERS ALIVE, DISABLE ALL RELEVANT MENUS
         kick_menu.setDisabled(True) 
         play_animation_menu.setDisabled(True)
         muteall_button.setDisabled(True)
+        stop_animation_menu.setDisabled(True)
 def setup_all_menus():
     yaha_tray.showMessage('Una!','App started, check your Windows System Tray and right click it to start!', yaha_icon, 500)
     global muteall_flag
