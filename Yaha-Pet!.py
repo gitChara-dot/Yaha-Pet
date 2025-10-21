@@ -268,7 +268,11 @@ class Character(QWidget):
         else:
             self.randomtimer.start()
             self.associated_stop_button.setText(f'{self.name} (click to disable)')
-
+    def getBlockedState(self):
+        if(self.randomtimer.isActive()):
+            return False
+        else:
+            return True
     def preload_animations(self, animname):
         base_path = resource_path(f'assets/{self.name}/animations/{animname}')
         base = Path(base_path)
@@ -512,11 +516,7 @@ tray_menu.addMenu(character_list_menu)
 #Play animation
 play_animation_menu = QMenu("Play Animation")
 play_animation_menu.setDisabled(True)
-
-
-#Adding the play animation menu to the main menu
-tray_menu.addMenu(play_animation_menu)
-
+tray_menu.addMenu(play_animation_menu)#Adding the play animation menu to the main menu
 
 #Say hi
 hi_action = tray_menu.addAction("Say hi!")
@@ -536,8 +536,14 @@ tray_menu.addAction(muteall_button)
 muteall_button.triggered.connect(lambda: mute_character('all'))
 
 #Stop animation menu
-stop_animation_menu = QMenu("Stop Animation of...")
+stop_animation_menu = QMenu("Stop/Resume Random Animations of...")
+stop_all_button = QAction("All (click to stop all)")
+stop_all_button.triggered.connect(lambda: stop_all_animations())
+stop_animation_menu.addAction(stop_all_button)
+
 stop_animation_menu.setDisabled(True)
+
+
 tray_menu.addMenu(stop_animation_menu)
 
 
@@ -561,6 +567,16 @@ characters = [] # List to hold character instances
 characters_names = [] # List to hold current alive characters
 
 #MENU FUNCTIONS
+def stop_all_animations():
+    
+    for character in characters:
+        if(character.getBlockedState() == False):
+            
+            stop_all_button.setText("All (click to stop all)")
+        else:
+            stop_all_button.setText("All (click to enable all)")
+        character.blockAnimations()
+        
 def mute_character(name: str):
     global muteall_flag
     muteall_flag = not muteall_flag
@@ -590,6 +606,7 @@ def kick_character(action: QAction):
         play_animation_menu.setDisabled(True)
         muteall_button.setDisabled(True)
         stop_animation_menu.setDisabled(True)
+
 def setup_all_menus():
     yaha_tray.showMessage('Una!','App started, check your Windows System Tray and right click it to start!', yaha_icon, 500)
     global muteall_flag
