@@ -591,6 +591,7 @@ def kick_character(action: QAction):
         if(target != None):
             if(target.getName() == charactername): 
                 characters.remove(target)
+                target.setAssociatedButton(None)
                 target.deleteLater()
                 del target
                 break
