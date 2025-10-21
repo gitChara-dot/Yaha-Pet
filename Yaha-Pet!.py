@@ -64,7 +64,8 @@ class Character(QWidget):
         self.drag = False
         self.char_size = size
         self.first = True # Its the first time it spawns, useful when calling the function set_sprite.
-        self.associated_button : QAction = None
+        self.associated_stop_button : QAction = None
+        self.associated_play_button : QAction = None
         #self.start_time : float
         #self.end_time : float # - BENCHMARKING PURPOSES
 
@@ -263,10 +264,10 @@ class Character(QWidget):
             print("stopped")
             self.randomtimer.stop()
             self.stop_current_animation()
-            self.associated_button.setText(f'{self.name} (click to enable)')
+            self.associated_stop_button.setText(f'{self.name} (click to enable)')
         else:
             self.randomtimer.start()
-            self.associated_button.setText(f'{self.name} (click to disable)')
+            self.associated_stop_button.setText(f'{self.name} (click to disable)')
 
     def preload_animations(self, animname):
         base_path = resource_path(f'assets/{self.name}/animations/{animname}')
@@ -386,8 +387,10 @@ class Character(QWidget):
         self.label.setPixmap(scaled)
         self.resize(scaled.size())
         self.label.resize(scaled.size())
-    def setAssociatedButton(self, b: QAction):
-        self.associated_button = b
+    def setAssociatedStopButton(self, b: QAction):
+        self.associated_stop_button = b
+    def setAssociatedPlayButton(self, b:QAction):
+        self.associated_play_button = b
     def getTimer(self):
         return self.frame_timer
     def mute(self, flag: bool):
@@ -436,15 +439,6 @@ def create_character(name: str):
         play_animation_menu.setDisabled(False) # Activate the animation menu
         kick_menu.setDisabled(False) # Enable kicking the character
         
-        match name:
-            case 'usagi':
-                play_animation_usagi_menu.setDisabled(False)
-                
-            case 'chiikawa':
-                play_animation_chiikawa_menu.setDisabled(False)
-            case 'hachiware':
-                play_animation_hachiware_menu.setDisabled(False)
-        
         #Instance the character
         character = Character(name, get_size_for_characters()) 
 
@@ -459,11 +453,22 @@ def create_character(name: str):
         characters.append(character) #Add character to alive widgets list
 
         ###Set up related menus 
-        animationbutton = QAction(name) # Create a stop animation button for this hcaracter
-        stop_animation_menu.addAction(animationbutton) # Add the action to the corresponding menu
-        animationbutton.triggered.connect(lambda: character.blockAnimations()) # Set up button to block random animations
-        character.setAssociatedButton(animationbutton) # Set the button to the character
+        #Stop animation Button
+        stopanimationbutton = QAction(name) # Create a stop animation button for this character
+        stop_animation_menu.addAction(stopanimationbutton) # Add the action to the corresponding menu
+        stopanimationbutton.triggered.connect(lambda: character.blockAnimations()) # Set up button to block random animations
+        character.setAssociatedStopButton(stopanimationbutton) # Set the button to the character
         
+        #Play Animation Button
+        playanimationbutton = QMenu(name) # Create a play animation menu for this character
+        play_animation_menu.addMenu(playanimationbutton)
+        for anim in totalanimations[name]:
+            playanimationbutton.addAction(anim)
+            
+        
+        playanimationbutton.triggered.connect(lambda action: character.start_anim(action.text()))
+        character.setAssociatedPlayButton(playanimationbutton)
+
         kick_menu.addAction(name) #enable kicking the character
         muteall_button.setDisabled(False) # Enable the muteall button
         stop_animation_menu.setDisabled(False) # Enable the stop animations menu
@@ -508,17 +513,6 @@ tray_menu.addMenu(character_list_menu)
 play_animation_menu = QMenu("Play Animation")
 play_animation_menu.setDisabled(True)
 
-#Creating each menu for each character containing their animations
-play_animation_usagi_menu = QMenu("Usagi")
-play_animation_hachiware_menu = QMenu("Hachiware")
-play_animation_chiikawa_menu = QMenu("Chiikawa")
-play_animation_usagi_menu.setDisabled(True)
-play_animation_hachiware_menu.setDisabled(True)
-play_animation_chiikawa_menu.setDisabled(True)
-#Adding the character's animation submenu to the play animation menu
-play_animation_menu.addMenu(play_animation_usagi_menu)
-play_animation_menu.addMenu(play_animation_chiikawa_menu)
-play_animation_menu.addMenu(play_animation_hachiware_menu)
 
 #Adding the play animation menu to the main menu
 tray_menu.addMenu(play_animation_menu)
@@ -544,7 +538,6 @@ muteall_button.triggered.connect(lambda: mute_character('all'))
 #Stop animation menu
 stop_animation_menu = QMenu("Stop Animation of...")
 stop_animation_menu.setDisabled(True)
-mute_options : list[QAction] = []
 tray_menu.addMenu(stop_animation_menu)
 
 
@@ -580,18 +573,13 @@ def kick_character(action: QAction):
     charactername = action.text()
     characters_names.remove(charactername)
     index = 0
-    match charactername:
-            case 'usagi':
-                play_animation_usagi_menu.setDisabled(True)
-            case 'chiikawa':
-                play_animation_chiikawa_menu.setDisabled(True)
-            case 'hachiware':
-                play_animation_hachiware_menu.setDisabled(True)
+    
     for target in characters: # For every character in alive characters list
         if(target != None):
             if(target.getName() == charactername): 
                 characters.remove(target)
-                target.setAssociatedButton(None)
+                target.setAssociatedStopButton(None)
+                target.setAssociatedPlayButton(None)
                 target.deleteLater()
                 del target
                 break
@@ -616,32 +604,12 @@ def setup_all_menus():
                     print(folder_name)
                     folder_name = folder_name.name
                     print(folder_name)
-                    if(character == "usagi"):
-                        play_animation_usagi_menu.addAction(folder_name)
-                        if(character not in characters):
-                            play_animation_usagi_menu.setDisabled(True)
-                    if(character == "chiikawa"):
-                        play_animation_chiikawa_menu.addAction(folder_name)
-                        if(character not in characters):
-                            play_animation_chiikawa_menu.setDisabled(True)
-                    if(character == "hachiware"):
-                        play_animation_hachiware_menu.addAction(folder_name)
-                        if(character not in characters):
-                            play_animation_hachiware_menu.setDisabled(True)
                     character_animations.append(folder_name)
             totalanimations[character] = character_animations
                     
-        play_animation_menu.triggered.connect(lambda action: start_anim_frommenu(action))
+        
     print(totalanimations["usagi"])
-def start_anim_frommenu(action: QAction):
-    animname = action.text() # Get the animation name from the action
-    charactername = action.parent().title().lower() # Get the character name from the menu
-    for target in characters: # For every character in alive characters list
-        if(target != None):
-            if(target.getName() == charactername): 
-                targetcharacter = target
-                break
-    targetcharacter.start_anim(animname)             
+           
  
 #Start event loop
 setup_all_menus()
