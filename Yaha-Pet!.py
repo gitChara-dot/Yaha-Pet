@@ -107,8 +107,9 @@ class Character(QWidget):
 
 
         #Valid random animations
-        self.modified_animationlist = totalanimations.copy()
+        
         try:
+            self.modified_animationlist = totalanimations.copy()
             self.modified_animationlist[self.name].remove("walkright")
             self.modified_animationlist[self.name].remove("walkleft") # Remove unwanted random animations
             self.modified_animationlist[self.name].remove("falling")
@@ -169,47 +170,48 @@ class Character(QWidget):
         self.soundplayer.stop()
 
     def try_animation(self):
-        if(not self.onanimation and not self.drag):
-            roll = random.randrange(0,100)
-            if(roll<=50): #If roll<=X, do walking animation
-                min_walk_distance = 100
-                screen_width = get_size().width()
-                
-                self.roll_direction = random.randrange(0, 2) #If 0 go left, if 1 go right
-                
-                if(self.roll_direction == 0):
-                    start_range = 0
-                    end_range = self.pos().x() - min_walk_distance
-                
-                else:
-                    start_range = self.pos().x() + min_walk_distance
-                    end_range = screen_width-self.width()
+        if(self.name != "chiikawa" and self.name != "hachiware"):
+            if(not self.onanimation and not self.drag):
+                roll = random.randrange(0,100)
+                if(roll<=50): #If roll<=X, do walking animation
+                    min_walk_distance = 100
+                    screen_width = get_size().width()
                     
-                if(start_range<end_range):
+                    self.roll_direction = random.randrange(0, 2) #If 0 go left, if 1 go right
+                    
                     if(self.roll_direction == 0):
-                        self.start_anim("walkleft")
+                        start_range = 0
+                        end_range = self.pos().x() - min_walk_distance
+                    
                     else:
-                        self.start_anim("walkright")
-                    possible_direction = random.randrange(start_range,end_range) # Leave some pixels as margin
-                    self.walktocoord = QPoint(possible_direction, self.pos().y())
+                        start_range = self.pos().x() + min_walk_distance
+                        end_range = screen_width-self.width()
+                        
+                    if(start_range<end_range):
+                        if(self.roll_direction == 0):
+                            self.start_anim("walkleft")
+                        else:
+                            self.start_anim("walkright")
+                        possible_direction = random.randrange(start_range,end_range) # Leave some pixels as margin
+                        self.walktocoord = QPoint(possible_direction, self.pos().y())
+                    
+                    else: # If invalid range, dont start any animation and try again later.
+                        return
                 
-                else: # If invalid range, dont start any animation and try again later.
-                    return
-            
-                time = int(abs(self.walktocoord.x()-self.pos().x()))
-                time = int(5*time) # Convert to int to avoid bugs
-                self.animation = QPropertyAnimation(self, b"pos")
-                self.animation.setDuration(time) # Time it takes the animation to be completed
-                self.animation.setTargetObject(self) # Widget as the target for the animation
-                self.animation.setStartValue(QPoint(self.pos())) # Current pos as start
-                self.animation.setEndValue(QPoint(self.walktocoord.x(), self.pos().y())) # Same y coord.
-                self.animation.finished.connect(self.stop_current_animation)
-                self.animation.finished.connect(self.stop_current_sound) 
-                self.animation.start()
-            else:
-                
-                chosen_animation = random.choice(self.modified_animationlist[self.name])
-                self.start_anim(chosen_animation)
+                    time = int(abs(self.walktocoord.x()-self.pos().x()))
+                    time = int(5*time) # Convert to int to avoid bugs
+                    self.animation = QPropertyAnimation(self, b"pos")
+                    self.animation.setDuration(time) # Time it takes the animation to be completed
+                    self.animation.setTargetObject(self) # Widget as the target for the animation
+                    self.animation.setStartValue(QPoint(self.pos())) # Current pos as start
+                    self.animation.setEndValue(QPoint(self.walktocoord.x(), self.pos().y())) # Same y coord.
+                    self.animation.finished.connect(self.stop_current_animation)
+                    self.animation.finished.connect(self.stop_current_sound) 
+                    self.animation.start()
+                else:
+                    
+                    chosen_animation = random.choice(self.modified_animationlist[self.name])
+                    self.start_anim(chosen_animation)
 
     def next_frame(self):
         
@@ -268,11 +270,7 @@ class Character(QWidget):
         else:
             self.randomtimer.start()
             self.associated_stop_button.setText(f'{self.name} (click to disable)')
-    def getBlockedState(self):
-        if(self.randomtimer.isActive()):
-            return False
-        else:
-            return True
+
     def preload_animations(self, animname):
         base_path = resource_path(f'assets/{self.name}/animations/{animname}')
         base = Path(base_path)
@@ -537,17 +535,8 @@ muteall_button.triggered.connect(lambda: mute_character('all'))
 
 #Stop animation menu
 stop_animation_menu = QMenu("Stop/Resume Random Animations of...")
-stop_all_button = QAction("All (click to stop all)")
-stop_all_button.triggered.connect(lambda: stop_all_animations())
-stop_animation_menu.addAction(stop_all_button)
-
 stop_animation_menu.setDisabled(True)
-
-
 tray_menu.addMenu(stop_animation_menu)
-
-
-
 
 #Quit - Must always be last 
 exit_action = tray_menu.addAction("Exit")
@@ -567,16 +556,6 @@ characters = [] # List to hold character instances
 characters_names = [] # List to hold current alive characters
 
 #MENU FUNCTIONS
-def stop_all_animations():
-    
-    for character in characters:
-        if(character.getBlockedState() == False):
-            
-            stop_all_button.setText("All (click to stop all)")
-        else:
-            stop_all_button.setText("All (click to enable all)")
-        character.blockAnimations()
-        
 def mute_character(name: str):
     global muteall_flag
     muteall_flag = not muteall_flag
@@ -608,6 +587,7 @@ def kick_character(action: QAction):
         stop_animation_menu.setDisabled(True)
 
 def setup_all_menus():
+    #Let the user know that the app has been initialized
     yaha_tray.showMessage('Una!','App started, check your Windows System Tray and right click it to start!', yaha_icon, 500)
     global muteall_flag
     muteall_flag = False
@@ -632,7 +612,7 @@ def setup_all_menus():
 setup_all_menus()
 
 
-#Let the user know that the app has been initialized
+
 
 app.exec()
 
