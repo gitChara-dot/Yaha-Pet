@@ -101,6 +101,25 @@ class Character(QWidget):
         self.anim_idx : dict[str,int] = {} # Example: Dance, 1
         self.current_anim_name = ''
 
+        #Saving sprites
+        self.sprites : dict[str, list[QPixmap]] = {}
+        for sprite in Path(resource_path(f'assets/{self.name}/sprites')).iterdir():
+            print(sprite.name)
+            print(sprite.name[:5])
+            if(sprite.name[:5] == "spawn"):
+                
+                spritename = sprite.name[:5]
+                img = self.convert_sprite_to_pixmap(sprite)
+                if(spritename not in self.sprites):
+                    self.sprites[spritename] = []
+                self.sprites[spritename].append(img)
+                print("appended")
+            else:
+                pass    
+            
+            
+        print(self.sprites["spawn"])
+
         #Setting the timer for random animations
         self.frame_timer = QTimer()
         self.frame_timer.timeout.connect(self.next_frame)
@@ -170,46 +189,46 @@ class Character(QWidget):
         self.soundplayer.stop()
 
     def try_animation(self):
-        if(self.name != "chiikawa" and self.name != "hachiware"):
-            if(not self.onanimation and not self.drag):
-                roll = random.randrange(0,100)
-                if(roll<=50): #If roll<=X, do walking animation
-                    min_walk_distance = 100
-                    screen_width = get_size().width()
-                    
-                    self.roll_direction = random.randrange(0, 2) #If 0 go left, if 1 go right
-                    
-                    if(self.roll_direction == 0):
-                        start_range = 0
-                        end_range = self.pos().x() - min_walk_distance
-                    
-                    else:
-                        start_range = self.pos().x() + min_walk_distance
-                        end_range = screen_width-self.width()
-                        
-                    if(start_range<end_range):
-                        if(self.roll_direction == 0):
-                            self.start_anim("walkleft")
-                        else:
-                            self.start_anim("walkright")
-                        possible_direction = random.randrange(start_range,end_range) # Leave some pixels as margin
-                        self.walktocoord = QPoint(possible_direction, self.pos().y())
-                    
-                    else: # If invalid range, dont start any animation and try again later.
-                        return
+    
+        if(not self.onanimation and not self.drag):
+            roll = random.randrange(0,100)
+            if(roll<=50): #If roll<=X, do walking animation
+                min_walk_distance = 100
+                screen_width = get_size().width()
                 
-                    time = int(abs(self.walktocoord.x()-self.pos().x()))
-                    time = int(5*time) # Convert to int to avoid bugs
-                    self.animation = QPropertyAnimation(self, b"pos")
-                    self.animation.setDuration(time) # Time it takes the animation to be completed
-                    self.animation.setTargetObject(self) # Widget as the target for the animation
-                    self.animation.setStartValue(QPoint(self.pos())) # Current pos as start
-                    self.animation.setEndValue(QPoint(self.walktocoord.x(), self.pos().y())) # Same y coord.
-                    self.animation.finished.connect(self.stop_current_animation)
-                    self.animation.finished.connect(self.stop_current_sound) 
-                    self.animation.start()
+                self.roll_direction = random.randrange(0, 2) #If 0 go left, if 1 go right
+                
+                if(self.roll_direction == 0):
+                    start_range = 0
+                    end_range = self.pos().x() - min_walk_distance
+                
                 else:
+                    start_range = self.pos().x() + min_walk_distance
+                    end_range = screen_width-self.width()
                     
+                if(start_range<end_range):
+                    if(self.roll_direction == 0):
+                        self.start_anim("walkleft")
+                    else:
+                        self.start_anim("walkright")
+                    possible_direction = random.randrange(start_range,end_range) # Leave some pixels as margin
+                    self.walktocoord = QPoint(possible_direction, self.pos().y())
+                
+                else: # If invalid range, dont start any animation and try again later.
+                    return
+            
+                time = int(abs(self.walktocoord.x()-self.pos().x()))
+                time = int(5*time) # Convert to int to avoid bugs
+                self.animation = QPropertyAnimation(self, b"pos")
+                self.animation.setDuration(time) # Time it takes the animation to be completed
+                self.animation.setTargetObject(self) # Widget as the target for the animation
+                self.animation.setStartValue(QPoint(self.pos())) # Current pos as start
+                self.animation.setEndValue(QPoint(self.walktocoord.x(), self.pos().y())) # Same y coord.
+                self.animation.finished.connect(self.stop_current_animation)
+                self.animation.finished.connect(self.stop_current_sound) 
+                self.animation.start()
+            else:
+                if(len(self.modified_animationlist[self.name])>0):
                     chosen_animation = random.choice(self.modified_animationlist[self.name])
                     self.start_anim(chosen_animation)
 
@@ -270,7 +289,10 @@ class Character(QWidget):
         else:
             self.randomtimer.start()
             self.associated_stop_button.setText(f'{self.name} (click to disable)')
-
+    def convert_sprite_to_pixmap(self, dir):
+        target: QSize = self.char_size # Set target size for images 
+        img = QPixmap(str(dir)).scaled(target, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+        return img
     def preload_animations(self, animname):
         base_path = resource_path(f'assets/{self.name}/animations/{animname}')
         base = Path(base_path)
@@ -384,11 +406,10 @@ class Character(QWidget):
         self.label.repaint()
 
     def setDefaultLabel(self):
-        pix = QPixmap(resource_path(f'assets/{self.name}/sprites/spawn.png'))
-        scaled = pix.scaled(self.char_size, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation )
-        self.label.setPixmap(scaled)
-        self.resize(scaled.size())
-        self.label.resize(scaled.size())
+        spawn_sprite = random.choice(self.sprites["spawn"])
+        self.label.setPixmap(spawn_sprite)
+        self.resize(spawn_sprite.size())
+        self.label.resize(spawn_sprite.size())
     def setAssociatedStopButton(self, b: QAction):
         self.associated_stop_button = b
     def setAssociatedPlayButton(self, b:QAction):
@@ -414,7 +435,7 @@ class Character(QWidget):
         time = int(1.5*time) # Convert to int to avoid bugs
 
         #Set the falling sprite
-        self.set_sprite(resource_path(f'assets/{self.name}/animations/falling/falling.ico'))
+        self.set_sprite(resource_path(f'assets/{self.name}/sprites/falling.png'))
 
         
         #Animation 
@@ -429,7 +450,7 @@ class Character(QWidget):
         self.timer = QTimer()
         self.timer.setSingleShot(True) #Only once
         self.timer.start(time) # Same time as animation length
-        self.timer.timeout.connect(lambda: self.set_sprite(resource_path(f'assets/{self.name}/sprites/spawn.png'))) # When it ends, go back to normal sprite
+        self.timer.timeout.connect(lambda: self.setDefaultLabel()) # When it ends, go back to normal sprite
         self.timer.timeout.connect(self.setOnAnimation)
         
 def create_character(name: str):
@@ -606,6 +627,7 @@ def setup_all_menus():
                     
         
     print(totalanimations["usagi"])
+     
            
  
 #Start event loop
