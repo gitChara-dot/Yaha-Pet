@@ -78,23 +78,32 @@ class Character(QWidget):
         #Sound Effects
         self.grabbed_soundeffects = [] # List of all sound effects available when the character gets grabbed with mouse
         sound_effect_path = Path(resource_path(f'assets/{self.name}/sounds'))
-        for file in sound_effect_path.iterdir():
-            file_name = file.name
-            if(file_name[0:7] == "grabbed" and file_name[-4:] == ".wav"):
-                file_name = file_name[0:8] # leave only the name, remove extension
-                self.grabbed_soundeffects.append(file_name)
-                print(file_name)
-        print(self.grabbed_soundeffects)
+        if sound_effect_path.exists():
+            for file in sound_effect_path.iterdir():
+                file_name = file.name
+                if(file_name[0:7] == "grabbed" and file_name[-4:] == ".wav"):
+                    file_name = file_name[0:8] # leave only the name, remove extension
+                    self.grabbed_soundeffects.append(file_name)
+                    print(file_name)
+            print(self.grabbed_soundeffects)
 
 
         #Animation variables
         self.onanimation = False  # Its not on animation, useful to avoid clicks when falling
-        self.animation = None
+        self.animation = None 
         self.before_anim_pos : QPoint # Save position 
         self.walktocoord = QPoint(0,self.pos().y()) # Coordinate that the character will walk to during their animation.
         self.animationnames = [] # Animation names for preloading purposes 
         self.randomtimer = QTimer() # Timer for random animations
 
+        self.chosen_grabbed_image : bool = False
+        self.grabbed_image : QPixmap = None;
+
+        #Shake animation variables
+        self.held_timer = QTimer() # Timer to start shake animation
+        self.start_shake : bool = False # Boolean for confirmation to start shake animation
+        self.shaken_image = resource_path(f'assets/{self.name}/sprites/shaken.png')
+        
         #pre-loading animation frames
         self.frames : dict[str, list[QPixmap]] = {} # Example: "Dance", "frame1,frame2,frame3"
         self.current_frame_idx = 0 
@@ -103,37 +112,45 @@ class Character(QWidget):
 
         #Saving sprites
         self.sprites : dict[str, list[QPixmap]] = {}
+
+    
         for sprite in Path(resource_path(f'assets/{self.name}/sprites')).iterdir():
             print(sprite.name)
             print(sprite.name[:5])
+            spritename = ""
             if(sprite.name[:5] == "spawn"):
                 
                 spritename = sprite.name[:5]
+                
+                print("appended")
+            if(sprite.name[:7] == "falling"):
+                spritename = sprite.name[:7]
+            if(sprite.name[:7] == "grabbed"):
+                spritename = sprite.name[:7]
+            if(spritename != ""):
                 img = self.convert_sprite_to_pixmap(sprite)
                 if(spritename not in self.sprites):
                     self.sprites[spritename] = []
                 self.sprites[spritename].append(img)
-                print("appended")
             else:
-                pass    
+                pass 
             
             
-        print(self.sprites["spawn"])
+        #print(self.sprites["spawn"])
 
         #Setting the timer for random animations
         self.frame_timer = QTimer()
         self.frame_timer.timeout.connect(self.next_frame)
 
-
+        self.modified_animationlist = totalanimations.copy()
         #Valid random animations
-        
-        try:
-            self.modified_animationlist = totalanimations.copy()
-            self.modified_animationlist[self.name].remove("walkright")
-            self.modified_animationlist[self.name].remove("walkleft") # Remove unwanted random animations
-            self.modified_animationlist[self.name].remove("falling")
-        except ValueError:
-            pass
+        if self.name in self.modified_animationlist:
+            try:
+                self.modified_animationlist[self.name].remove("walkright")
+                self.modified_animationlist[self.name].remove("walkleft") # Remove unwanted random animations
+                self.modified_animationlist[self.name].remove("falling")
+            except ValueError:
+                pass
 
         #Direction walk-animation variables
         self.direction : int = 0
@@ -166,6 +183,7 @@ class Character(QWidget):
         self.randomtimer.timeout.connect(self.try_animation)
             
     def start_anim(self, animname: str, fps: int = 40):
+        
         if(not self.onanimation and not self.drag):
             self.before_anim_pos = self.pos()
             if animname not in self.frames: # If animation hasnt loaded yet
@@ -189,12 +207,15 @@ class Character(QWidget):
         self.soundplayer.stop()
 
     def try_animation(self):
-    
+        screen_width = get_size().width()
+        screen_height = get_size().height()
+        if(self.pos().x() < 0 or self.pos().x()>screen_width or self.pos().y()<0 or self.pos().y()>screen_height):
+            self.move(self.clamp_to_screen(0,0))
         if(not self.onanimation and not self.drag):
             roll = random.randrange(0,100)
             if(roll<=50): #If roll<=X, do walking animation
                 min_walk_distance = 100
-                screen_width = get_size().width()
+                
                 
                 self.roll_direction = random.randrange(0, 2) #If 0 go left, if 1 go right
                 
@@ -348,6 +369,17 @@ class Character(QWidget):
             if(e.button() == Qt.MouseButton.LeftButton):
                 self.drag = True
                 self.offset = e.globalPosition().toPoint() - self.frameGeometry().topLeft() # Put the cursor at the center of the widget
+                
+                #Set timer to activate shake animation
+                self.held_timer = QTimer()
+                self.held_timer.setSingleShot(True)
+                self.held_timer.start(4500)
+                self.start_shake = False
+                self.held_timer.timeout.connect(lambda: setattr(self, 'start_shake', True))
+
+                #Set image when timer ends
+
+                self.held_timer.timeout.connect(lambda: self.setLabelImage(self.shaken_image))
 
                 if(self.grabbed_soundeffects):
                     sound_effect = QSoundEffect()
@@ -358,8 +390,7 @@ class Character(QWidget):
                     sound_effect.setSource(QUrl.fromLocalFile(sound_source))
                     sound_effect.play()
                     sound_effect.playingChanged.connect(lambda: sound_effect.deleteLater()) # Destroy itself to avoid being picked up by garbage col.
-                    
-            
+                        
     def mouseMoveEvent(self, e):
         if(self.onanimation == False):
             if(self.drag and e.buttons() & Qt.MouseButton.LeftButton):
@@ -367,18 +398,34 @@ class Character(QWidget):
                 new_top_left = e.globalPosition().toPoint()-self.offset
                 new_top_left = self.clamp_to_screen(new_top_left) # Ensures the character falls onto the taskbar
                 self.move(new_top_left)
+                
+                #ERRATIC MOVEMENT
+                if(self.start_shake):
+                    dirx = random.randint(0,10)
+                    diry = random.randint(0,10)
+                    self.move(new_top_left.x()+dirx, new_top_left.y()+diry)
+                else:
+                    #If not shaken, set normal image.
+                    if(self.chosen_grabbed_image == False):
+                        self.grabbed_image = random.choice(self.sprites['grabbed'])
+                        self.setLabelImage(self.grabbed_image)
+                        self.chosen_grabbed_image = True
 
-                #Set special image when grabbing
-                grabbed_image_dir = resource_path(f'assets/{self.name}/sprites/grabbed.png')
-                self.setLabelImage(grabbed_image_dir)
-              
+                
+                
+        else:
+            self.unsetCursor()      
 
     def mouseReleaseEvent(self, e):
         if(e.button() == Qt.MouseButton.LeftButton and not self.onanimation):
 
             self.setCursor(Qt.CursorShape.ArrowCursor) # Set cursor to default
             self.drag = False
-            
+
+            self.held_timer.stop()
+            self.start_shake = False
+            self.chosen_grabbed_image = False
+
             self.fall_animation() 
 
             #Stop the sound effects to avoid audio glitches
@@ -402,7 +449,9 @@ class Character(QWidget):
     def setLabelImage(self, dir):
         pix = QPixmap(dir)
         scaled = pix.scaled(self.char_size, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation )
-        self.label.setPixmap(scaled)
+        self.label.setPixmap(scaled)  
+        self.label.resize(scaled.size()) 
+        self.resize(scaled.size())
         self.label.repaint()
 
     def setDefaultLabel(self):
@@ -410,6 +459,9 @@ class Character(QWidget):
         self.label.setPixmap(spawn_sprite)
         self.resize(spawn_sprite.size())
         self.label.resize(spawn_sprite.size())
+
+
+
     def setAssociatedStopButton(self, b: QAction):
         self.associated_stop_button = b
     def setAssociatedPlayButton(self, b:QAction):
@@ -435,8 +487,12 @@ class Character(QWidget):
         time = int(1.5*time) # Convert to int to avoid bugs
 
         #Set the falling sprite
-        self.set_sprite(resource_path(f'assets/{self.name}/sprites/falling.png'))
+        falling_sprite = random.choice(self.sprites["falling"])
+        self.setLabelImage(falling_sprite)
 
+        #Deciding sprite for animation's end
+        chance = random.randint(0,100)
+        fallingend_sprite_dir = resource_path(f'assets/{self.name}/sprites/fallingend.png')
         
         #Animation 
         self.animation = QPropertyAnimation(self, b"pos")
@@ -450,8 +506,12 @@ class Character(QWidget):
         self.timer = QTimer()
         self.timer.setSingleShot(True) #Only once
         self.timer.start(time) # Same time as animation length
-        self.timer.timeout.connect(lambda: self.setDefaultLabel()) # When it ends, go back to normal sprite
-        self.timer.timeout.connect(self.setOnAnimation)
+        self.timer.timeout.connect(self.setOnAnimation) #Set OnAnimation bool back to false
+
+        if(chance <=30):  #30% for the character to crash onto the ground, 70% for it to land properly
+            self.timer.timeout.connect(lambda: self.setLabelImage(fallingend_sprite_dir))# When it ends, go back to normal sprite
+        else:
+            self.timer.timeout.connect(lambda: self.setDefaultLabel())
         
 def create_character(name: str):
     
@@ -501,8 +561,7 @@ def create_character(name: str):
 
 #Setting up variables
 
-app = QApplication([])
-
+app = QApplication([]) 
 #Setting the window and flags
 yahawindow = QWidget()
 yahawindow.setWindowFlag(Qt.WindowType.FramelessWindowHint) #  No title bar
@@ -571,6 +630,7 @@ yahawindow.show()
 #Defining each animation and each character
 totalanimations : dict[str, list[str]] = {}
 allcharacters = ["usagi", "hachiware", "chiikawa"]
+
 #Declaring variables for future use and keeping them alive from garbage collection
 sound = QSoundEffect()
 characters = [] # List to hold character instances
