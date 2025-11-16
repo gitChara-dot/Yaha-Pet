@@ -321,6 +321,18 @@ class Character(QWidget):
         screen_width = get_size().width()
         min_movement_distance = 100      
 
+        # Make sure we have at least one walk animation loaded.
+        left_walk_dir = Path(resource_path(f'assets/{self.name}/animations/walkleft'))
+        right_walk_dir = Path(resource_path(f'assets/{self.name}/animations/walkright'))
+        if "walkleft" not in self.frames and left_walk_dir.exists():
+            self.preload_animations("walkleft")
+        if "walkright" not in self.frames and right_walk_dir.exists():
+            self.preload_animations("walkright")
+
+        # If none of the walk animations exist, there is nothing to do.
+        if "walkleft" not in self.frames and "walkright" not in self.frames:
+            return
+
         self.roll_direction = random.randrange(0, 2) #If 0 go left, if 1 go right
         
         if(self.roll_direction == 0):
@@ -333,9 +345,11 @@ class Character(QWidget):
 
         if(start_range<end_range  ):
             if(self.roll_direction == 0):
-                self.start_anim("walkleft")
+                chosen_walk_animation = "walkleft" if "walkleft" in self.frames else "walkright"
             else:
-                self.start_anim("walkright")
+                chosen_walk_animation = "walkright" if "walkright" in self.frames else "walkleft"
+
+            self.start_anim(chosen_walk_animation)
             possible_direction = random.randrange(start_range,end_range) 
             
             self.walktocoord = QPoint(possible_direction, self.pos().y())
@@ -419,6 +433,9 @@ class Character(QWidget):
         base = Path(base_path)
 
         files = sorted(base.glob("*.png"), key=lambda f: int(f.stem.split('-')[0])) # Sort files by number
+
+        if not files:
+            return
   
         target: QSize = self.char_size # Set target size for images 
         width = target.width()
